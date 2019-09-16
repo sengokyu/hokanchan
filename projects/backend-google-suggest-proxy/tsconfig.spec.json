@@ -1,9 +1,10 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "../../tsconfig.sam.json",
   "compilerOptions": {
     "target": "es5",
     "types": ["jasmine", "node"],
-    "sourceMap": true
+    "sourceMap": true,
+    "lib": ["es2018", "dom"]
   },
   "include": ["src/**/*.spec.ts", "src/**/*.d.ts", "src/**/*.ts"]
 }
