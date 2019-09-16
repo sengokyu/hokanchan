@@ -8,7 +8,7 @@
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",
-    "publish":"aws s3 sync dist/hokanchan s3://hokanchan.uart.dev"
+    "publish": "aws s3 sync dist/hokanchan s3://hokanchan.uart.dev"
   },
   "private": true,
   "dependencies": {
