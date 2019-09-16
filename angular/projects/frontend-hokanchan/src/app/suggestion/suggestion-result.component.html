@@ -1,0 +1,23 @@
+<div fxLayout="row wrap" fxLayoutAlign="start start" fxLayoutGap="16px">
+  <!-- 検索結果 -->
+  <mat-card *ngFor="let suggestion of suggestions$ | async">
+    <mat-card-title>{{ suggestion.letter }}</mat-card-title>
+    <mat-card-content>
+      <ng-container *ngIf="suggestion.result; else noResult">
+        <ul>
+          <li *ngFor="let word of suggestion.result">
+            <a
+              href="https://www.google.co.jp/search?hl=ja&amp;lr=lang_ja&amp;q={{
+                word
+              }}"
+              target="_blank"
+              >{{ word }}</a
+            >
+          </li>
+        </ul>
+      </ng-container>
+    </mat-card-content>
+  </mat-card>
+</div>
+
+<ng-template #noResult>（何もありませんでした）</ng-template>
