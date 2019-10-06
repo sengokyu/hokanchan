@@ -63,11 +63,14 @@
     "sam:watch": "webpack-cli -w",
     "sam:test": "karma start projects/backend-google-suggest-proxy/karma.conf.js",
     "sam:validate": "sam validate --template template.yaml",
-    "sam:package": "npm run sam:build;sam package --template-file .aws-sam/build/template.yaml --s3-bucket lambdastash-ap1 --output-template-file /tmp/packaged.yaml",
-    "sam:deploy": "npm run sam:package;sam deploy --template-file /tmp/packaged.yaml --stack-name hokanchan --capabilities CAPABILITY_IAM",
-    "sam:failed": "aws cloudformation describe-stack-events --stack-name hokanchan --query 'StackEvents[?ResourceStatus==`CREATE_FAILED`]'",
-    "sam:apiurl": "aws cloudformation describe-stacks --stack-name hokanchan --query 'Stacks[].Outputs[?OutputKey==`GoogleSuggestProxyApi`]' --output table",
-    "sam:undeploy": "aws cloudformation delete-stack --stack-name hokanchan;aws cloudformation wait stack-delete-complete --stack-name hokanchan"
+    "sam:package": "npm run sam:build;sam package --template-file .aws-sam/build/template.yaml --s3-bucket lambdastash --output-template-file /tmp/packaged.yaml",
+    "sam:deploy": "npm run sam:package;sam deploy --region us-west-1 --template-file /tmp/packaged.yaml --stack-name hokanchan --capabilities CAPABILITY_IAM",
+    "sam:describe-stack-events": "aws --region us-west-1 cloudformation describe-stack-events --stack-name hokanchan",
+    "sam:describe-failed-events": "aws --region us-west-1 cloudformation describe-stack-events --stack-name hokanchan --query 'StackEvents[?ResourceStatus==`CREATE_FAILED`]'",
+    "sam:apiurl": "aws --region us-west-1 cloudformation describe-stacks --stack-name hokanchan --query 'Stacks[].Outputs[?OutputKey==`GoogleSuggestProxyApi`]' --output table",
+    "sam:delete-stack": "aws --region us-west-1 cloudformation delete-stack --stack-name hokanchan",
+    "sam:wait-delete-stack": "aws --region us-west-1 cloudformation wait stack-delete-complete --stack-name hokanchan",
+    "sam:undeploy": "npm run sam:delete-stack;npm run sam:wait-delete-stack"
   },
   "author": "",
   "license": "ISC"

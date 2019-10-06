@@ -12,42 +12,31 @@ Parameters:
   domainName:
     Type: String
     Default: hokanchan.uart.dev
+  # CloudFront用証明書は、us-east-1リージョンにある必要がある
   certificateArn:
     Type: String
-    Default: arn:aws:acm:ap-northeast-1:069866334413:certificate/30411785-43fb-4084-beb1-9d5a78b742ac
-  restApiName:
-    Type: String
-    Default: hokanchan
-  restApiPath:
-    Type: String
-    Default: '/api/suggest'
+    Default: arn:aws:acm:us-east-1:069866334413:certificate/6bbabedf-c976-49b5-9633-f676aa7f1f2c
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
     Timeout: 15
-  Api:
-    Cors:
-      AllowMethods: "'OPTIONS,GET'"
-      AllowHeaders: "'Content-Type'"
-      AllowOrigin: "'*'"
 
 Resources:
+  # Static content
   StaticContentBucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Ref bucketName
-      AccessControl: PublicRead
-      WebsiteConfiguration:
-        IndexDocument: index.html
-        ErrorDocument: error.html
-  BucketPolicy:
+    DeletionPolicy: Delete
+  # GetObjectを全許可
+  StaticContentBucketPolicy:
     Type: AWS::S3::BucketPolicy
     DependsOn: StaticContentBucket
     Properties:
       Bucket: !Ref StaticContentBucket
       PolicyDocument:
-        Id: StaticContentBucketPolicy
+        Id: StaticContentBucketPolicyDocument
         Version: '2012-10-17'
         Statement:
           - Sid: PublicReadForGetBucketObjects
@@ -59,68 +48,8 @@ Resources:
               - - 'arn:aws:s3:::'
                 - !Ref StaticContentBucket
                 - /*
-  ServerlessApi:
-    Type: AWS::Serverless::Api
-    Properties:
-      StageName: ''
-      EndpointConfiguration: REGIONAL
-  RestApi:
-    Type: AWS::ApiGateway::RestApi
-    Properties:
-      Name: !Ref restApiName
-      EndpointConfiguration:
-        - REGIONAL
-  CustomDomainName:
-    Type: AWS::ApiGateway::DomainName
-    Properties:
-      CertificateArn: !Ref certificateArn
-      DomainName: !Ref domainName
-      EndpointConfiguration:
-        - REGIONAL
-  DomainNameMapping:
-    DependsOn:
-      - RestApi
-      - CustomDomainName
-    Type: AWS::ApiGateway::BasePathMapping
-    Properties:
-      DomainName: !Ref CustomDomainName
-      RestApiId: !Ref RestApi
-      BasePath: ''
-  StaticContentResource:
-    DependsOn:
-      - RestApi
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      ParentId: !GetAtt RestApi.RootResourceId
-      RestApiId: !Ref RestApi
-      PathPart: '{path}'
-  StaticContentResourceMethod:
-    DependsOn: StaticContentResource
-    Type: AWS::ApiGateway::Method
-    Properties:
-      HttpMethod: GET
-      ResourceId: !Ref StaticContentResource
-      RestApiId: RestApi
-      AuthorizationType: NONE
-      RequestParameters:
-        method.request.path.path: true
-      Integration:
-        IntegrationHttpMethod: GET
-        Type: HTTP_PROXY
-        Uri: !Join
-          - ''
-          - - !GetAtt StaticContentBucket.WebsiteURL
-            - '/{path}'
-        PassthroughBehavior: WHEN_NO_MATCH
-        IntegrationResponses:
-          - StatusCode: 200
-        CacheKeyParameters:
-          - 'method.request.path.path'
-        RequestParameters:
-          integration.request.path.path: 'method.request.path.path'
+  # Create Lambda, API Gateway, IAM role
   ServerlessFunction:
-    DependsOn:
-      - StaticContentResourceMethod
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: projects/backend-google-suggest-proxy/src/
@@ -132,18 +61,73 @@ Resources:
           Properties:
             Path: /suggest
             Method: get
-            RestApiId: !Ref RestApi
-
+  CloudFrontDistribution:
+    DependsOn:
+      - StaticContentBucket
+      - StaticContentBucketPolicy
+      - ServerlessFunction
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+          - DomainName: !GetAtt StaticContentBucket.DomainName
+            Id: StaticContent
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+          - DomainName: !Sub '${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com'
+            Id: LambdaFunction
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+        Aliases:
+          - !Ref domainName
+        Comment: Hokanchan
+        DefaultCacheBehavior:
+          TargetOriginId: StaticContent
+          AllowedMethods:
+            - GET
+            - HEAD
+          DefaultTTL: 259200
+          ForwardedValues:
+            QueryString: false
+          ViewerProtocolPolicy: redirect-to-https
+        CacheBehaviors:
+          - PathPattern: '/Prod/suggest/*' # Lambda用
+            TargetOriginId: LambdaFunction
+            AllowedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+            ForwardedValues:
+              Headers:
+                - 'Accept'
+                - 'Accept-Encoding'
+                - 'Accept-Language'
+                - 'Cache-Control'
+                - 'User-Agent'
+                - 'DNT'
+              QueryString: true
+              QueryStringCacheKeys:
+                - 'q'
+            ViewerProtocolPolicy: https-only
+        DefaultRootObject: index.html
+        Enabled: 'true'
+        PriceClass: PriceClass_200
+        ViewerCertificate:
+          AcmCertificateArn: !Ref certificateArn
+          SslSupportMethod: sni-only
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   ServerlessFunctionApi:
     Description: 'API Gateway endpoint URL for Prod stage for the serverless function'
-    Value: !Sub 'https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/suggest/'
+    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/suggest/'
   ServerlessFunction:
     Description: 'The serverless Lambda Function ARN'
     Value: !GetAtt ServerlessFunction.Arn
   ServerlessFunctionIamRole:
     Description: 'Implicit IAM Role created for the serverless function'
     Value: !GetAtt ServerlessFunctionRole.Arn
+  CloudFrontDomainName:
+    Description: 'Domain name of CloudFront distribution'
+    Value: !GetAtt CloudFrontDistribution.DomainName
