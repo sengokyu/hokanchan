@@ -5,6 +5,23 @@ Description: >
 
   Google Suggest API Proxy
 
+Parameters:
+  bucketName:
+    Type: String
+    Default: hokanchan.uart.dev
+  domainName:
+    Type: String
+    Default: hokanchan.uart.dev
+  certificateArn:
+    Type: String
+    Default: arn:aws:acm:ap-northeast-1:069866334413:certificate/30411785-43fb-4084-beb1-9d5a78b742ac
+  restApiName:
+    Type: String
+    Default: hokanchan
+  restApiPath:
+    Type: String
+    Default: '/api/suggest'
+
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
@@ -16,29 +33,117 @@ Globals:
       AllowOrigin: "'*'"
 
 Resources:
-  GoogleSuggestProxyFunction:
+  StaticContentBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref bucketName
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn: StaticContentBucket
+    Properties:
+      Bucket: !Ref StaticContentBucket
+      PolicyDocument:
+        Id: StaticContentBucketPolicy
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Join
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref StaticContentBucket
+                - /*
+  ServerlessApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: ''
+      EndpointConfiguration: REGIONAL
+  RestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Ref restApiName
+      EndpointConfiguration:
+        - REGIONAL
+  CustomDomainName:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      CertificateArn: !Ref certificateArn
+      DomainName: !Ref domainName
+      EndpointConfiguration:
+        - REGIONAL
+  DomainNameMapping:
+    DependsOn:
+      - RestApi
+      - CustomDomainName
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties:
+      DomainName: !Ref CustomDomainName
+      RestApiId: !Ref RestApi
+      BasePath: ''
+  StaticContentResource:
+    DependsOn:
+      - RestApi
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt RestApi.RootResourceId
+      RestApiId: !Ref RestApi
+      PathPart: '{path}'
+  StaticContentResourceMethod:
+    DependsOn: StaticContentResource
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId: !Ref StaticContentResource
+      RestApiId: RestApi
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.path.path: true
+      Integration:
+        IntegrationHttpMethod: GET
+        Type: HTTP_PROXY
+        Uri: !Join
+          - ''
+          - - !GetAtt StaticContentBucket.WebsiteURL
+            - '/{path}'
+        PassthroughBehavior: WHEN_NO_MATCH
+        IntegrationResponses:
+          - StatusCode: 200
+        CacheKeyParameters:
+          - 'method.request.path.path'
+        RequestParameters:
+          integration.request.path.path: 'method.request.path.path'
+  ServerlessFunction:
+    DependsOn:
+      - StaticContentResourceMethod
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: projects/backend-google-suggest-proxy/src/
       Handler: app.lambdaHandler
       Runtime: nodejs8.10
       Events:
-        GoogleSuggestProxy:
+        ApiEvent:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /suggest
             Method: get
+            RestApiId: !Ref RestApi
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  GoogleSuggestProxyApi:
-    Description: 'API Gateway endpoint URL for Prod stage for Google Suggest Proxy function'
-    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/suggest/'
-  GoogleSuggestProxyFunction:
-    Description: 'Google Suggest Proxy Lambda Function ARN'
-    Value: !GetAtt GoogleSuggestProxyFunction.Arn
-  GoogleSuggestProxyFunctionIamRole:
-    Description: 'Implicit IAM Role created for Google Suggest Proxy function'
-    Value: !GetAtt GoogleSuggestProxyFunctionRole.Arn
+  ServerlessFunctionApi:
+    Description: 'API Gateway endpoint URL for Prod stage for the serverless function'
+    Value: !Sub 'https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/suggest/'
+  ServerlessFunction:
+    Description: 'The serverless Lambda Function ARN'
+    Value: !GetAtt ServerlessFunction.Arn
+  ServerlessFunctionIamRole:
+    Description: 'Implicit IAM Role created for the serverless function'
+    Value: !GetAtt ServerlessFunctionRole.Arn

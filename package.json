@@ -53,17 +53,21 @@
   "scripts": {
     "ng": "ng",
     "ng:start": "ng serve",
-    "ng:build": "ng build",
+    "ng:build": "ng build --prod",
     "ng:test": "ng test",
     "ng:lint": "ng lint",
     "ng:e2e": "ng e2e",
+    "s3:sync": "aws s3 sync dist/frontend-hokanchan  s3://hokanchan.uart.dev",
+    "s3:delete": "aws s3 rm s3://hokanchan.uart.dev --recursive",
     "sam:build": "webpack-cli",
     "sam:watch": "webpack-cli -w",
     "sam:test": "karma start projects/backend-google-suggest-proxy/karma.conf.js",
     "sam:validate": "sam validate --template template.yaml",
-    "sam:package": "npm run build;sam package --template-file .aws-sam/build/template.yaml --s3-bucket lambdastash --output-template-file /tmp/packaged.yaml",
-    "sam:deploy": "sam deploy --template-file /tmp/packaged.yaml --stack-name hokanchan --capabilities CAPABILITY_IAM",
-    "sam:describe": "aws cloudformation describe-stacks --stack-name hokanchan --query 'Stacks[].Outputs[?OutputKey==`GoogleSuggestProxyApi`]' --output table"
+    "sam:package": "npm run sam:build;sam package --template-file .aws-sam/build/template.yaml --s3-bucket lambdastash-ap1 --output-template-file /tmp/packaged.yaml",
+    "sam:deploy": "npm run sam:package;sam deploy --template-file /tmp/packaged.yaml --stack-name hokanchan --capabilities CAPABILITY_IAM",
+    "sam:failed": "aws cloudformation describe-stack-events --stack-name hokanchan --query 'StackEvents[?ResourceStatus==`CREATE_FAILED`]'",
+    "sam:apiurl": "aws cloudformation describe-stacks --stack-name hokanchan --query 'Stacks[].Outputs[?OutputKey==`GoogleSuggestProxyApi`]' --output table",
+    "sam:undeploy": "aws cloudformation delete-stack --stack-name hokanchan;aws cloudformation wait stack-delete-complete --stack-name hokanchan"
   },
   "author": "",
   "license": "ISC"
