@@ -91,7 +91,7 @@ Resources:
             QueryString: false
           ViewerProtocolPolicy: redirect-to-https
         CacheBehaviors:
-          - PathPattern: '/Prod/suggest/*' # Lambda用
+          - PathPattern: '/Prod/suggest' # Lambda用
             TargetOriginId: LambdaFunction
             AllowedMethods:
               - GET
