@@ -1,14 +1,13 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject, Subscription } from 'rxjs';
+import { BehaviorSubject, Subscription } from 'rxjs';
 import { Suggestion } from './suggestion.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class SuggestionService {
-  private static readonly apiUrl =
-    'https://4719bbobr6.execute-api.us-west-1.amazonaws.com/Prod/suggest/';
+  private static readonly apiUrl = '/Prod/suggest';
   private requestSubscriptions = new Array<Subscription>();
   private suggestions = new BehaviorSubject<Suggestion[]>([]);
 
