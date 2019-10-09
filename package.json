@@ -52,7 +52,7 @@
   },
   "scripts": {
     "ng": "ng",
-    "ng:start": "ng serve",
+    "ng:start": "ng serve --proxy-config proxy.conf.json",
     "ng:build": "ng build --prod",
     "ng:test": "ng test",
     "ng:lint": "ng lint",
