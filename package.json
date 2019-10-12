@@ -61,6 +61,7 @@
     "s3:delete": "aws s3 rm s3://hokanchan.uart.dev --recursive",
     "sam:build": "webpack-cli",
     "sam:watch": "webpack-cli -w",
+    "sam:start": "sam local start-api",
     "sam:test": "karma start projects/backend-google-suggest-proxy/karma.conf.js",
     "sam:validate": "sam validate --template template.yaml",
     "sam:package": "npm run sam:build;sam package --template-file .aws-sam/build/template.yaml --s3-bucket lambdastash --output-template-file /tmp/packaged.yaml",

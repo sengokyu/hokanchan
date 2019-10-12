@@ -1,34 +1,11 @@
 # ホスティング
 
-AWS S3 でホスティングします。
+## AWSリソース
 
-## S3 バケットの準備
-
-別ドメイン名でホストする場合は、バケット名を DNS CNAME レコードに合わせる必要があります。
-
-```sh
-s3bucket=MY-BUCKET-NAME
-s3uri=s3://${s3bucket}
-```
-
-```sh
-# バケットを作成
-aws s3 mb ${s3uri} --region ap-northeast-1
-# バケットをWebiteとして使用
-aws s3 website ${s3uri} --index-document
-# 公開ポリシーをセット
-aws s3api put-bucket-policy --bucket ${s3bucket} --policy file://etc/aws-s3-bucket-policy.json
-```
-
-## アップロード
-
-```sh
-aws s3 sync dist/hokanchan ${s3uri}
-```
-
-## httpsアクセス
-
-AWS S3静的Webホストはhttpsが使えないので、別途CloudFrontを用意します。
+* S3
+* Lambda
+* API Gateway
+* CloudFront
 
 ### SSL証明書の作成
 
@@ -49,4 +26,11 @@ aws --region us-east-1 acm wait certificate-validated --certificate-arn 上記�
 ```
 
 
+## デプロイ
+
+CloudFormationを使用します。
+
+template.yaml内に全リロースを入れています。
+
+CloudFrontのカスタムドメインも同時に設定しているので、先にDNSレコードが登録されているとエラーで失敗します。
 
