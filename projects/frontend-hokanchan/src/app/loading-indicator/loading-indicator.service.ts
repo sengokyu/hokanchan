@@ -9,7 +9,7 @@ import { BehaviorSubject } from 'rxjs';
 })
 export class LoadingIndicatorService {
   private visibleCount = 0;
-  private visibility = new BehaviorSubject<boolean>(false);
+  private readonly visibility = new BehaviorSubject<boolean>(false);
   readonly visibility$ = this.visibility.asObservable();
 
   show(): void {

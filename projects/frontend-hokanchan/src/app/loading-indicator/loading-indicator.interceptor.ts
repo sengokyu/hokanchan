@@ -8,7 +8,7 @@ import {
 } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { tap, finalize } from 'rxjs/operators';
 import { LoadingIndicatorService } from './loading-indicator.service';
 
 @Injectable()
@@ -19,18 +19,10 @@ export class LoadingIndicatorInterceptor implements HttpInterceptor {
     req: HttpRequest<any>,
     next: HttpHandler
   ): Observable<HttpEvent<any>> {
+    console.log('show indicator');
     this.loading.show();
 
-    return next.handle(req).pipe(
-      tap(
-        event => {
-          if (event.type === HttpEventType.Response) {
-            this.loading.hide();
-          }
-        },
-        () => this.loading.hide()
-      )
-    );
+    return next.handle(req).pipe(finalize(() => this.loading.hide()));
   }
 }
 
