@@ -4,6 +4,7 @@ import { Component, OnInit } from '@angular/core';
 import { SuggestionService } from './suggestion.service';
 import { ActivatedRoute } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { GoogleAnalyticsService } from '../google-analytics.service';
 
 @Component({
   selector: 'app-suggestion',
@@ -16,7 +17,8 @@ export class SuggestionComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private location: Location,
-    private suggestionService: SuggestionService
+    private suggestionService: SuggestionService,
+    private gaService: GoogleAnalyticsService
   ) {}
 
   ngOnInit(): void {
@@ -31,6 +33,7 @@ export class SuggestionComponent implements OnInit {
   onSubmit(): void {
     this.location.go('.', `q=${this.queryWord}`);
     this.showResult();
+    this.gaService.sendCurrentLocation();
   }
 
   private showResult(): void {
