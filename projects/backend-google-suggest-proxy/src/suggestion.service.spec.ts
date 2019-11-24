@@ -1,10 +1,9 @@
-import { AxiosResponse } from 'axios';
 import { of } from 'rxjs';
-import { SuggestionService } from './suggestion.service';
 import { delay } from 'rxjs/operators';
 import { SuggestApiWrapper } from './suggest-api-wrapper';
+import { SuggestionService } from './suggestion.service';
 
-const letters = 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわを'.split(
+const letters = 'あいうえおかがきぎくぐけげこごさざしじすずせぜそぞただちぢつづてでとどなにぬねのはばぱひびぴふぶぷへべぺほぼぽまみむめもやゆよらりるれろわを'.split(
   ''
 );
 
@@ -42,7 +41,7 @@ describe('SuggestionService', () => {
       done();
     });
 
-    expect(suggestApi.getSuggestion).toHaveBeenCalledTimes(45);
+    expect(suggestApi.getSuggestion).toHaveBeenCalledTimes(70); // 70文字分
     expect(suggestApi.getSuggestion).toHaveBeenCalledWith('hoge あ');
     expect(suggestApi.getSuggestion).toHaveBeenCalledWith('hoge い');
     expect(suggestApi.getSuggestion).toHaveBeenCalledWith('hoge う');

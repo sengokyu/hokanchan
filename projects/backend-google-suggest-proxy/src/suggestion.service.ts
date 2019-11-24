@@ -4,7 +4,7 @@ import { parseSuggestionXml } from './parse-suggestion-xml';
 import { SuggestApiWrapper } from './suggest-api-wrapper';
 import { Suggestion } from './suggestion.model';
 
-const letters = 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわを'.split(
+const letters = 'あいうえおかがきぎくぐけげこごさざしじすずせぜそぞただちぢつづてでとどなにぬねのはばぱひびぴふぶぷへべぺほぼぽまみむめもやゆよらりるれろわを'.split(
   ''
 );
 const lettersLength = letters.length;
